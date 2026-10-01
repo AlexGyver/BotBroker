@@ -13,6 +13,7 @@ https://example.com/bot<TOKEN>/getUpdates...
 - Long polling (брокер парсит timeout из строки запроса)
 - `multipart/form-data` и загрузка файлов
 - HTTP status/body Telegram возвращаются клиенту
+- Возврат ошибок брокера в формате BOT API
 
 ## Требования
 
@@ -35,26 +36,20 @@ https://example.com/bot<TOKEN>/getUpdates...
 public_html/
 ├── .htaccess
 ├── broker.php
-└── test.html
+└── test.php
 ```
 
 После установки открыть:
 
 ```text
-https://example.com/test.html
+https://example.com/test.php
 ```
 
-Ввести token и chat ID. Страница умеет проверять:
+Если всё ок - должны отсутствовать красные надписи FAIL. Можно указать токен бота и нажать getMe - это уже прямая проверка работы брокера. Там же можно проверить getUpdates с long polling. Для чистого теста long polling у бота не должно быть ожидающих updates. Если update уже есть, Telegram вернёт его сразу — это нормально.
 
-1. соединение с Telegram через broker (`getMe`)
-2. long polling с замером времени
-3. отправку сообщения
-4. multipart-загрузку файла
+После проверки рекомендуется удалить `test.php` с публичного сервера или ограничить к нему доступ.
 
-Для чистого теста long polling у бота не должно быть ожидающих updates. Если update уже есть, Telegram вернёт его сразу — это нормально.
-
-После проверки рекомендуется удалить `test.html` с публичного сервера или ограничить к нему доступ.
-
+## Использование
 На стороне бота отправлять запросы не на `api.telegram.org`, а на ваш домен. В библиотеке FastBot2 например это можно сделать так:
 
 ```cpp
@@ -62,7 +57,7 @@ https://example.com/test.html
 #define TELEGRAM_HOST "tg.gyver.ru"
 ```
 
-## Дополнительно
+### Дополнительно
 При ошибках брокер возвращает ответ в формате Telegram BOT API, прокидывает текст ошибки в `description` и добавляет поле `broker_error=true`. Пример ответа с ошибкой:
 
 ```json
