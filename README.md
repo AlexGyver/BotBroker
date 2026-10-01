@@ -19,24 +19,17 @@ https://example.com/bot<TOKEN>/getUpdates...
 - Свой сервер с доменом
 - PHP 8.x
 - PHP cURL
-- HTTPS
 - доступ сервера к `api.telegram.org:443`
 - web/PHP timeout больше времени long polling
 - Apache + `mod_rewrite` для приложенного `.htaccess`
 
-По сути работает почти на любом шаред-хостинге с бесплатным доменом. Тестировалось на beget - работает отлично. На spaceweb не заработало - нет доступа к серверу тг.
+По сути работает почти на любом шаред-хостинге с бесплатным доменом. Тестировалось на [beget](https://beget.com/ru) - работает отлично. На spaceweb не заработало - нет доступа к серверу тг.
+
+Проверить текущую работоспособность beget можно на моём брокере по адресу `tg.gyver.ru`.
 
 ## Установка
 
 Положить в корень сайта файлы из репозитория:
-
-```text
-broker.php
-.htaccess
-test.html
-```
-
-Пример:
 
 ```text
 public_html/
@@ -45,13 +38,13 @@ public_html/
 └── test.html
 ```
 
-После установки откройте:
+После установки открыть:
 
 ```text
 https://example.com/test.html
 ```
 
-Введите bot token и chat ID. Страница умеет проверять:
+Ввести token и chat ID. Страница умеет проверять:
 
 1. соединение с Telegram через broker (`getMe`)
 2. long polling с замером времени
