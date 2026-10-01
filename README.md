@@ -61,3 +61,15 @@ https://example.com/test.html
 // перед подключением библиотеки
 #define TELEGRAM_HOST "tg.gyver.ru"
 ```
+
+## Дополнительно
+При ошибках брокер возвращает ответ в формате Telegram BOT API, прокидывает текст ошибки в `description` и добавляет поле `broker_error=true`. Пример ответа с ошибкой:
+
+```json
+{
+  "ok": false,
+  "broker_error": true,
+  "curl_errno": 6,
+  "description": "Could not resolve host: api.telegram.org"
+}
+```
