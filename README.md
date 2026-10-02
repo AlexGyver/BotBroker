@@ -54,7 +54,22 @@ https://example.com/test.php
 
 ```cpp
 // перед подключением библиотеки
-#define TELEGRAM_HOST "tg.gyver.ru"
+#define TELEGRAM_HOST "mybot.ru"
+```
+
+### Токен в хэдере
+Брокер поддерживает отправку токена в хэдере `X-Bot-Token`, чтобы убрать его из строки запроса (тогда он не попадёт в логи сервера). То есть полный запрос может выглядеть так:
+
+```text
+POST /sendMessage HTTP/1.1
+Host: mybot.ru
+X-Bot-Token: 123456789:ABC...
+Content-Type: application/json
+
+{
+  "chat_id": 123456789,
+  "text": "Hello"
+}
 ```
 
 ### Дополнительно

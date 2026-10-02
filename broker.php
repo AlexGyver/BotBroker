@@ -1,3 +1,4 @@
+```php
 <?php
 
 declare(strict_types=1);
@@ -24,17 +25,69 @@ if (!in_array($httpMethod, ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'], tr
 }
 
 $parts = parse_url($requestUri);
+
 $path = $parts['path'] ?? '';
 $query = $parts['query'] ?? '';
 
-// Only Telegram Bot API paths are accepted.
-// The upstream host is always fixed and cannot be supplied by the client.
-if (!preg_match('~^/bot[^/]+/[A-Za-z0-9_]+$~', $path)) {
-    brokerError(400, 'Invalid Telegram API path');
+$headerToken = trim($_SERVER['HTTP_X_BOT_TOKEN'] ?? '');
+
+$telegramMethod = '';
+$telegramPath = '';
+
+// -----------------------------------------------------------------------------
+// Routing
+// -----------------------------------------------------------------------------
+//
+// Supported:
+//
+// 1. Header token:
+//    /getUpdates?timeout=30
+//    X-Bot-Token: 123456:ABC...
+//
+// 2. Token in path:
+//    /bot123456:ABC.../getUpdates?timeout=30
+//
+// -----------------------------------------------------------------------------
+
+if ($headerToken !== '') {
+
+    // Header mode accepts only /<method>.
+    if (!preg_match('~^/([A-Za-z0-9_]+)$~', $path, $match)) {
+        brokerError(400, 'Invalid Telegram API method');
+    }
+
+    if (!isValidToken($headerToken)) {
+        brokerError(400, 'Invalid X-Bot-Token');
+    }
+
+    $telegramMethod = $match[1];
+    $telegramPath = '/bot' . $headerToken . '/' . $telegramMethod;
+
+} else {
+
+    // Legacy/path mode.
+    if (!preg_match('~^/bot([^/]+)/([A-Za-z0-9_]+)$~', $path, $match)) {
+        brokerError(
+            400,
+            'Missing X-Bot-Token or invalid Telegram API path'
+        );
+    }
+
+    $token = $match[1];
+
+    if (!isValidToken($token)) {
+        brokerError(400, 'Invalid bot token');
+    }
+
+    $telegramMethod = $match[2];
+    $telegramPath = $path;
 }
 
-$telegramMethod = basename($path);
-$url = TELEGRAM_HOST . $path . ($query !== '' ? '?' . $query : '');
+$url = TELEGRAM_HOST . $telegramPath;
+
+if ($query !== '') {
+    $url .= '?' . $query;
+}
 
 // -----------------------------------------------------------------------------
 // Timeout
@@ -49,7 +102,10 @@ if ($telegramMethod === 'getUpdates') {
         ? (int) $queryParams['timeout']
         : 0;
 
-    $telegramTimeout = max(0, min($telegramTimeout, MAX_TELEGRAM_TIMEOUT));
+    $telegramTimeout = max(
+        0,
+        min($telegramTimeout, MAX_TELEGRAM_TIMEOUT)
+    );
 
     if ($telegramTimeout > 0) {
         $curlTimeout = $telegramTimeout + TIMEOUT_MARGIN;
@@ -74,13 +130,11 @@ $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 $isMultipart = stripos($contentType, 'multipart/form-data') === 0;
 
 // -----------------------------------------------------------------------------
-// Body
+// Request body
 // -----------------------------------------------------------------------------
 
 if ($httpMethod !== 'GET' && $httpMethod !== 'HEAD') {
     if ($isMultipart) {
-        // PHP parses incoming multipart into $_POST / $_FILES,
-        // so rebuild it for the outgoing cURL request.
         $postFields = $_POST;
 
         foreach ($_FILES as $fieldName => $fileData) {
@@ -88,6 +142,7 @@ if ($httpMethod !== 'GET' && $httpMethod !== 'HEAD') {
         }
 
         curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+
     } else {
         $body = file_get_contents('php://input');
 
@@ -98,12 +153,14 @@ if ($httpMethod !== 'GET' && $httpMethod !== 'HEAD') {
 }
 
 // -----------------------------------------------------------------------------
-// Headers
+// Request headers
 // -----------------------------------------------------------------------------
 
 $requestHeaders = [];
 
-// For multipart, let cURL generate Content-Type with its own boundary.
+// Never forward X-Bot-Token to Telegram.
+// It is used only to construct Telegram's /bot<TOKEN>/ path.
+
 if (!$isMultipart && $contentType !== '') {
     $requestHeaders[] = 'Content-Type: ' . $contentType;
 }
@@ -117,7 +174,7 @@ if ($requestHeaders) {
 }
 
 // -----------------------------------------------------------------------------
-// Execute / response
+// Execute
 // -----------------------------------------------------------------------------
 
 $response = curl_exec($ch);
@@ -146,6 +203,10 @@ $responseContentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
 
 curl_close($ch);
 
+// -----------------------------------------------------------------------------
+// Response
+// -----------------------------------------------------------------------------
+
 http_response_code($status);
 
 if ($responseContentType) {
@@ -159,6 +220,12 @@ if ($httpMethod !== 'HEAD') {
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
+
+function isValidToken(string $token): bool
+{
+    return strlen($token) <= 256
+        && preg_match('~^[A-Za-z0-9:_-]+$~', $token) === 1;
+}
 
 function brokerError(int $status, string $description): never
 {
@@ -218,3 +285,4 @@ function addUploadedFiles(
         );
     }
 }
+```
