@@ -1,2 +1,3 @@
 RewriteEngine On
-RewriteRule ^(?:bot[^/]+/)?[A-Za-z0-9_]+$ broker.php [L]
+RewriteRule ^(?:bot[^/]+/)?[A-Za-z0-9_]+$ broker.php [L,QSA]
+RewriteRule ^file/(?:bot[^/]+/)?.+$ broker.php [L,QSA]
